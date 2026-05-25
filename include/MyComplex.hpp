@@ -75,3 +75,9 @@ template <typename T>
 bool operator<(const MyComplex<T>& lhs, const MyComplex<T>& rhs) {
     return lhs.abs() < rhs.abs();
 }
+
+template <typename T>
+std::ostream& operator<<(std::ostream& os, const MyComplex<T>& c) {
+    os << c.real() << (c.imag() >= 0 ? "+" : "") << c.imag() << "i";
+    return os;
+}

@@ -1,143 +1,143 @@
 #pragma once
 
 #include <QWidget>
+#include <QTabWidget>
 #include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QLineEdit>
-#include <QPushButton>
-#include <QLabel>
-#include <QTextEdit>
-#include <sstream>
+#include <QStringList>
+#include <string>
+#include <algorithm>
 
-#include "PriorityQueue.hpp"
-
-template<class T, class C>
-static std::string pqToStr(PriorityQueue<T, C> pq)
-{
-    std::ostringstream ss;
-    ss << "[";
-    bool first = true;
-    while (!pq.Empty()) {
-        if (!first) ss << ", ";
-        ss << pq.Top();
-        pq.pop();
-        first = false;
-    }
-    ss << "]";
-    return ss.str();
-}
+#include "QueueTestWidget.hpp"
+#include "other/Exceptions.hpp"
 
 class Tab1 : public QWidget
 {
     Q_OBJECT
 
-    PriorityQueue<int> pq;
-    QTextEdit* log;
-    QLineEdit* valIn;
-    QLineEdit* mapN;
-    QLineEdit* filterN;
-    QLabel*    topLbl;
-
-    void addLog(const QString& s) { log->append(s); }
-
-    void refresh()
-    {
-        QString top = pq.Empty() ? "-" : QString::number(pq.Top());
-        topLbl->setText("Top: " + top + "   Очередь: " + QString::fromStdString(pqToStr(pq)));
-    }
-
 public:
     explicit Tab1(QWidget* parent = nullptr) : QWidget(parent)
     {
-        auto* lay = new QVBoxLayout(this);
+        auto* mainLayout = new QVBoxLayout(this);
+        auto* tabWidget = new QTabWidget(this);
 
-        auto* row1 = new QHBoxLayout;
-        valIn = new QLineEdit; valIn->setPlaceholderText("число");
-        auto* bPush = new QPushButton("Push");
-        auto* bPop  = new QPushButton("Pop");
-        row1->addWidget(valIn); row1->addWidget(bPush); row1->addWidget(bPop);
-        lay->addLayout(row1);
+        // Лямбда для проверки наличия цифр в строке
+        auto hasDigits = [](const std::string& s) {
+            return std::any_of(s.begin(), s.end(), ::isdigit);
+        };
 
-        topLbl = new QLabel("Top: -");
-        lay->addWidget(topLbl);
+        // 1. Вкладка для int
+        auto intParser = [](const QString& str) -> int {
+            std::string s = str.trimmed().toStdString();
+            if (s.empty()) {
+                throw InvalidArgument("Ошибка ввода: строка пуста!");
+            }
+            
+            size_t pos = 0;
+            try {
+                int val = std::stoi(s, &pos);
+                if (pos != s.length()) {
+                    throw InvalidArgument("Ошибка ввода: обнаружены лишние символы после числа!");
+                }
+                return val;
+            } catch (const InvalidArgument&) {
+                throw InvalidArgument("Ошибка ввода: вместо числа введены буквы!");
+            } catch (const OutOfRange&) {
+                throw OutOfRange("Ошибка диапазона: число не помещается в тип int!");
+            }
+        };
+        auto* intTab = new QueueTestWidget<int>(intParser, this);
+        tabWidget->addTab(intTab, "Integer (int)");
 
-        auto* row2 = new QHBoxLayout;
-        mapN = new QLineEdit; mapN->setPlaceholderText("Map *n: n=");
-        auto* bMap = new QPushButton("Map *n");
-        filterN = new QLineEdit; filterN->setPlaceholderText("Where >n: n=");
-        auto* bFlt = new QPushButton("Where >n");
-        row2->addWidget(mapN); row2->addWidget(bMap);
-        row2->addWidget(filterN); row2->addWidget(bFlt);
-        lay->addLayout(row2);
+        auto complexParser = [](const QString& str) -> MyComplex<double> {
+            QStringList parts = str.split(' ', Qt::SkipEmptyParts);
+            if (parts.size() != 2) {
+                throw InvalidArgument("Ошибка ввода: введите ровно два числа через пробел (Re и Im)!");
+            }
 
-        auto* row3 = new QHBoxLayout;
-        auto* bRed   = new QPushButton("Reduce (sum)");
-        auto* bCat   = new QPushButton("Concat self");
-        auto* bSub   = new QPushButton("Subseq [0,2]");
-        auto* bIsSub = new QPushButton("IsSubseq [top]");
-        auto* bSpl   = new QPushButton("Split >5");
-        for (auto* b : {bRed, bCat, bSub, bIsSub, bSpl}) row3->addWidget(b);
-        lay->addLayout(row3);
+            std::string s_re = parts[0].toStdString();
+            std::string s_im = parts[1].toStdString();
+            
+            size_t pos_re = 0, pos_im = 0;
+            try {
+                double re = std::stod(s_re, &pos_re);
+                double im = std::stod(s_im, &pos_im);
 
-        log = new QTextEdit; log->setReadOnly(true);
-        lay->addWidget(log);
+                if (pos_re != s_re.length() || pos_im != s_im.length()) {
+                    throw InvalidArgument("Ошибка ввода: некорректные символы в комплексном числе!");
+                }
+                return MyComplex<double>(re, im);
+            } catch (const InvalidArgument&) {
+                throw InvalidArgument("Ошибка ввода: комплексное число содержит недопустимые буквы!");
+            } catch (const OutOfRange&) {
+                throw OutOfRange("Ошибка диапазона: вещественное число слишком огромное!");
+            }
+        };
+        QueueTestWidget<MyComplex<double>>* complexTab = new QueueTestWidget<MyComplex<double>>(complexParser, this);
+        tabWidget->addTab(complexTab, "Complex (MyComplex)");
 
-        connect(bPush, &QPushButton::clicked, this, [this] {
-            bool ok; int v = valIn->text().toInt(&ok);
-            if (!ok) { addLog("Введите целое число"); return; }
-            pq.Push(v);
-            addLog("Push " + QString::number(v));
-            refresh();
-        });
+        // 3. Вкладка для Student
+        auto studentParser = [hasDigits](const QString& str) -> Student {
+            QStringList parts = str.split(' ', Qt::SkipEmptyParts);
+            if (parts.size() != 2) {
+                throw InvalidArgument("Ошибка ввода: формат должен быть [Имя] [Оценка] через пробел!");
+            }
 
-        connect(bPop, &QPushButton::clicked, this, [this] {
-            if (pq.Empty()) { addLog("Очередь пуста"); return; }
-            int v = pq.Top(); pq.pop();
-            addLog("Pop -> убрали " + QString::number(v));
-            refresh();
-        });
+            std::string name = parts[0].toStdString();
+            if (hasDigits(name)) {
+                throw InvalidArgument("Ошибка валидации: в имени студента содержатся цифры!");
+            }
 
-        connect(bMap, &QPushButton::clicked, this, [this] {
-            bool ok; int n = mapN->text().toInt(&ok);
-            if (!ok) { addLog("Введите n"); return; }
-            auto r = pq.Map([n](int x) { return x * n; });
-            addLog("Map *" + QString::number(n) + " -> " + QString::fromStdString(pqToStr(r)));
-        });
+            std::string s_grade = parts[1].toStdString();
+            size_t pos = 0;
+            try {
+                double grade = std::stod(s_grade, &pos);
+                if (pos != s_grade.length()) {
+                    throw InvalidArgument("Ошибка ввода: некорректные символы в оценке студента!");
+                }
+                if (grade < 0.0 || grade > 5.0) {
+                    throw OutOfRange("Ошибка диапазона: оценка студента должна быть строго от 0 до 5!");
+                }
+                return Student{name, grade};
+            } catch (const std::invalid_argument&) {
+                throw InvalidArgument("Ошибка ввода: оценка студента содержит буквы!");
+            } catch (const std::out_of_range& e) {
+                throw OutOfRange("Ошибка диапазона: значение оценки вызвало переполнение типа!");
+            }
+        };
+        QueueTestWidget<Student>* studentTab = new QueueTestWidget<Student>(studentParser, this);
+        tabWidget->addTab(studentTab, "Students");
 
-        connect(bFlt, &QPushButton::clicked, this, [this] {
-            bool ok; int n = filterN->text().toInt(&ok);
-            if (!ok) { addLog("Введите n"); return; }
-            auto r = pq.Where([n](int x) { return x > n; });
-            addLog("Where >" + QString::number(n) + " -> " + QString::fromStdString(pqToStr(r)));
-        });
+        auto teacherParser = [hasDigits](const QString& str) -> Teacher {
+            QStringList parts = str.split(' ', Qt::SkipEmptyParts);
+            if (parts.size() != 2) {
+                throw InvalidArgument("Ошибка ввода: формат должен быть [Имя] [Зарплата] через пробел!");
+            }
 
-        connect(bRed, &QPushButton::clicked, this, [this] {
-            int s = pq.Reduce<int>([](int a, int b) { return a + b; });
-            addLog("Reduce(sum) = " + QString::number(s));
-        });
+            std::string name = parts[0].toStdString();
+            if (hasDigits(name)) {
+                throw InvalidArgument("Ошибка валидации: в имени преподавателя содержатся цифры!");
+            }
 
-        connect(bCat, &QPushButton::clicked, this, [this] {
-            auto r = pq.Concat(pq);
-            addLog("Concat self+self -> " + QString::fromStdString(pqToStr(r)));
-        });
+            std::string s_salary = parts[1].toStdString();
+            size_t pos = 0;
+            try {
+                int salary = std::stoi(s_salary, &pos);
+                if (pos != s_salary.length()) {
+                    throw InvalidArgument("Ошибка ввода: некорректные символы в зарплате!");
+                }
+                if (salary < 0) {
+                    throw OutOfRange("Ошибка диапазона: зарплата преподавателя не может быть отрицательной!");
+                }
+                return Teacher{name, salary};
+            } catch (const InvalidArgument&) {
+                throw InvalidArgument("Ошибка ввода: зарплата преподавателя содержит буквы!");
+            } catch (const OutOfRange&) {
+                throw OutOfRange("Ошибка диапазона: значение зарплаты превышает лимиты типа int!");
+            }
+        };
+        auto* teacherTab = new QueueTestWidget<Teacher>(teacherParser, this);
+        tabWidget->addTab(teacherTab, "Teachers");
 
-        connect(bSub, &QPushButton::clicked, this, [this] {
-            DynamicArray<size_t> idx = {0, 2};
-            auto r = pq.GetSubsequence(0, idx.GetSize() - 1);
-            addLog("Subseq [0,2] -> " + QString::fromStdString(pqToStr(r)));
-        });
-
-        connect(bIsSub, &QPushButton::clicked, this, [this] {
-            PriorityQueue<int> sub;
-            if (!pq.Empty()) sub.Push(pq.Top());
-            bool res = pq.IsSubsequence(sub);
-            addLog(QString("IsSubseq([top]) -> ") + (res ? "true" : "false"));
-        });
-
-        connect(bSpl, &QPushButton::clicked, this, [this] {
-            auto [t, f] = pq.Split([](int x) { return x > 5; });
-            addLog("Split >5: true=" + QString::fromStdString(pqToStr(t))
-                 + "  false=" + QString::fromStdString(pqToStr(f)));
-        });
+        mainLayout->addWidget(tabWidget);
     }
 };

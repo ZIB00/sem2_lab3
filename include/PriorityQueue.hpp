@@ -50,7 +50,7 @@ class PriorityQueue {
         void swap(PriorityQueue& other) { heap.Swap(other.heap); }
 
         //Задания
-        PriorityQueue<int, Compare> Map(std::function<int(const T&)> func) const;
+        PriorityQueue<int, std::less<int>> Map(std::function<int(const T&)> func) const;
         PriorityQueue<T, Compare> Where(std::function<bool(const T&)> predicate) const;
 
         template<class T2>

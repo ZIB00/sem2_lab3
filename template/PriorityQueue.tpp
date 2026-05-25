@@ -37,10 +37,11 @@ void PriorityQueue<T, Compare>::PushRange(R&& rg) {
     }
 }
 
-template<class T, class Compare>
-PriorityQueue<int, Compare> PriorityQueue<T, Compare>::Map(std::function<int(const T&)> func) const {
-    PriorityQueue<int, Compare> result;
-    PriorityQueue<T, Compare> temp(*this);
+template <typename T, typename Compare>
+PriorityQueue<int, std::less<int>> PriorityQueue<T, Compare>::Map(std::function<int(const T&)> func) const {
+    PriorityQueue<int, std::less<int>> result;
+    PriorityQueue<T, Compare> temp = *this;
+    
     while (!temp.Empty()) {
         result.Push(func(temp.Top()));
         temp.pop();

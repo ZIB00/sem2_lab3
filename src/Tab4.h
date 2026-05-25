@@ -7,10 +7,15 @@
 #include <QLineEdit>
 #include <QTextEdit>
 #include <QString>
-#include <vector>
+#include <QRegularExpressionValidator>
 
-#include "PriorityQueue.hpp"
-#include "Tab1.h"   // pqToStr
+#include "../include/sequence/sequences/ArraySequence.hpp" 
+#include "../include/sequence/other/Implementation.hpp" 
+
+struct Inversion {
+    int GreaterValue;
+    int SmallerValue;
+};
 
 class Tab4 : public QWidget
 {
@@ -22,56 +27,97 @@ class Tab4 : public QWidget
 public:
     explicit Tab4(QWidget* parent = nullptr) : QWidget(parent)
     {
-        auto* lay = new QVBoxLayout(this);
-        lay->addWidget(new QLabel("Последовательность чисел через пробел:"));
+        QVBoxLayout* lay = new QVBoxLayout(this);
+        lay->addWidget(new QLabel("Последовательность чисел через пробел (Total Ordering):"));
 
         seqIn = new QLineEdit("3 1 4 1 5 9 2 6");
+
+        QRegularExpression regExp("^[0-9 ]*$");
+        QRegularExpressionValidator* validator = new QRegularExpressionValidator(regExp, this);
+        seqIn->setValidator(validator);
+
         lay->addWidget(seqIn);
 
-        auto* b = new QPushButton("Анализ");
+        QPushButton* b = new QPushButton("Подсчитать и перечислить инверсии");
         lay->addWidget(b);
 
-        log = new QTextEdit; log->setReadOnly(true);
+        log = new QTextEdit; 
+        log->setReadOnly(true);
         lay->addWidget(log);
 
         connect(b, &QPushButton::clicked, this, [this] {
             log->clear();
-            auto parts = seqIn->text().split(' ', Qt::SkipEmptyParts);
-            std::vector<int> nums;
-            for (auto& p : parts) { bool ok; int v = p.toInt(&ok); if (ok) nums.push_back(v); }
-            if (nums.empty()) { log->append("Нет чисел"); return; }
+            
+            QStringList parts = seqIn->text().split(' ', Qt::SkipEmptyParts);
+            
+            MutableArraySequence<int> nums;
+            for (QString& p : parts) { 
+                bool ok; 
+                int v = p.toInt(&ok); 
+                if (ok) {
+                    nums.Append(v);
+                } 
+            }
+            
+            if (nums.GetLength() == 0) { 
+                log->append("Нет элементов для анализа"); 
+                return; 
+            }
 
-            PriorityQueue<int> pq;
-            for (int v : nums) pq.Push(v);
+            DefaultRing<int> ring;
+            int totalInversions = ring.Zero(); 
 
-            int sum = pq.Reduce<int>([](int a, int b) { return a + b; });
-            double mean = (double)sum / (int)pq.Size();
+            MutableArraySequence<int> sortedRightElements;
+            MutableArraySequence<Inversion> inversionList;
 
-            log->append("Последовательность: " + seqIn->text());
-            log->append("Размер: "   + QString::number(pq.Size()));
-            log->append("Максимум: " + QString::number(pq.Top()));
-            log->append("Сумма: "    + QString::number(sum));
-            log->append("Среднее: "  + QString::number(mean, 'f', 2));
+            int n = static_cast<int>(nums.GetLength());
+            
+            for (int i = n - 1; i >= 0; --i) {
+                int current = nums[i];
 
-            int inv = 0;
-            for (size_t i = 0; i < nums.size(); i++)
-                for (size_t j = i+1; j < nums.size(); j++)
-                    if (nums[i] > nums[j]) inv++;
-            log->append("\nЧисло инверсий: " + QString::number(inv));
+                int low = 0;
+                int high = static_cast<int>(sortedRightElements.GetLength());
+                int insertIndex = high; 
 
-            auto above = pq.Where([mean](int x) { return x > mean; });
-            log->append(QString("Where > %1: ").arg(mean, 0, 'f', 2)
-                      + QString::fromStdString(pqToStr(above)));
+                while (low < high) {
+                    int mid = low + (high - low) / 2;
+                    if (sortedRightElements[mid] >= current) {
+                        insertIndex = mid;
+                        high = mid; 
+                    } else {
+                        low = mid + 1; 
+                    }
+                }
+                if (low == high) {
+                    insertIndex = low;
+                }
 
-            auto doubled = pq.Map([](int x) { return x * 2; });
-            log->append("Map *2: " + QString::fromStdString(pqToStr(doubled)));
+                for (int j = 0; j < insertIndex; ++j) {
+                    Inversion inv;
+                    inv.GreaterValue = current;
+                    inv.SmallerValue = sortedRightElements[j];
+                    inversionList.Append(inv);
+                }
 
-            int med = nums[nums.size() / 2];
-            auto [t, f] = pq.Split([med](int x) { return x > med; });
-            log->append(QString("Split >%1: true=%2  false=%3")
-                .arg(med)
-                .arg(QString::fromStdString(pqToStr(t)))
-                .arg(QString::fromStdString(pqToStr(f))));
+                int currentInversions = insertIndex;
+                totalInversions = ring.Add(totalInversions, currentInversions);
+                
+                sortedRightElements.InsertAt(current, static_cast<size_t>(insertIndex));
+            }
+
+            if (inversionList.GetLength() == 0) {
+                log->append("Инверсий не обнаружено (последовательность отсортирована).");
+            } else {
+                log->append("\n Инверсии: ");
+
+                int totalPairs = static_cast<int>(inversionList.GetLength());
+                for (int i = totalPairs - 1; i >= 0; --i) {
+                    Inversion inv = inversionList[i];
+                    log->append(QString("(%1 > %2)").arg(inv.GreaterValue).arg(inv.SmallerValue));
+                }
+
+                log->append("Всего инверсий: " + QString::number(totalInversions));
+            }
         });
     }
 };
