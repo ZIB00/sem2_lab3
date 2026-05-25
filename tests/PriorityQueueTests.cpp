@@ -3,6 +3,56 @@
 #include "include/sequence/sequences/DynamicArray.hpp"
 #include <string>
 
+template<typename T, typename Comp>
+DynamicArray<T> DumpQueueToDynamicArray(PriorityQueue<T, Comp> q) {
+    DynamicArray<T> result(q.Size());
+    size_t idx = 0;
+    while (!q.Empty()) {
+        result.Set(idx++, q.Top());
+        q.pop();
+    }
+    return result;
+}
+
+template<typename T>
+void AssertArraysEqual(const DynamicArray<T>& actual, const DynamicArray<T>& expected, 
+                       const std::string& functionName, const std::string& inputs) {
+    if (actual.GetSize() != expected.GetSize()) {
+        size_t minSize = (actual.GetSize() < expected.GetSize()) ? actual.GetSize() : expected.GetSize();
+        FAIL() << "Function: " << functionName << "\n"
+               << "Inputs: " << inputs << "\n"
+               << "Error: Size mismatch\n"
+               << "Expected size: " << expected.GetSize() << "\n"
+               << "Actual size: " << actual.GetSize() << "\n"
+               << "Mismatch at index: " << minSize << "\n"
+               << "Expected value: " << (minSize < expected.GetSize() ? std::to_string(expected.Get(minSize)) : "N/A") << "\n"
+               << "Actual value: " << (minSize < actual.GetSize() ? std::to_string(actual.Get(minSize)) : "N/A");
+    }
+    for (size_t i = 0; i < actual.GetSize(); ++i) {
+        if (!(actual.Get(i) == expected.Get(i))) {
+            FAIL() << "Function: " << functionName << "\n"
+                   << "Inputs: " << inputs << "\n"
+                   << "Error: Value mismatch\n"
+                   << "Expected size: " << expected.GetSize() << "\n"
+                   << "Actual size: " << actual.GetSize() << "\n"
+                   << "Mismatch at index: " << i << "\n"
+                   << "Expected value: " << std::to_string(expected.Get(i)) << "\n"
+                   << "Actual value: " << std::to_string(actual.Get(i));
+        }
+    }
+}
+
+template<typename T, typename Comp>
+void AssertQueueIsEmpty(const PriorityQueue<T, Comp>& q, const std::string& functionName, const std::string& inputs) {
+    if (!q.Empty()) {
+        FAIL() << "Function: " << functionName << "\n"
+               << "Inputs: " << inputs << "\n"
+               << "Error: Queue is not empty\n"
+               << "Expected: Empty queue\n"
+               << "Actual size: " << q.Size();
+    }
+}
+
 struct TestPoint {
     int x, y;
     TestPoint() : x(0), y(0) {}
@@ -25,9 +75,7 @@ TEST(PriorityQueueTest, DefaultConstructorInitializesEmptyQueue) {
 }
 
 TEST(PriorityQueueTest, ConstructorFromConstContainerCopiesDataAndBuildsHeap) {
-    int raw_data[] = {10, 30, 20, 5, 40};
-    DynamicArray<int> array(raw_data, 5);
-
+    DynamicArray<int> array = {10, 30, 20, 5, 40};
     PriorityQueue<int> pq(std::less<int>(), array);
 
     EXPECT_EQ(pq.Size(), 5);
@@ -35,9 +83,7 @@ TEST(PriorityQueueTest, ConstructorFromConstContainerCopiesDataAndBuildsHeap) {
 }
 
 TEST(PriorityQueueTest, ConstructorFromRvalueContainerMovesData) {
-    int raw_data[] = {7, 8, 9};
-    DynamicArray<int> array(raw_data, 3);
-
+    DynamicArray<int> array = {7, 8, 9};
     PriorityQueue<int> pq(std::less<int>(), std::move(array));
 
     EXPECT_EQ(pq.Size(), 3);
@@ -45,47 +91,29 @@ TEST(PriorityQueueTest, ConstructorFromRvalueContainerMovesData) {
     EXPECT_EQ(array.GetSize(), 0); 
 }
 
-
 TEST(PriorityQueueTest, PushMaintainsPriorityOrder) {
-    PriorityQueue<int> pq;
-
+    PriorityQueue<int> pq; // В этом тесте оставляем Push для проверки самого метода
     pq.Push(10);
     EXPECT_EQ(pq.Top(), 10);
-
     pq.Push(20);
     EXPECT_EQ(pq.Top(), 20);
-
     pq.Push(15);
     EXPECT_EQ(pq.Top(), 20); 
     EXPECT_EQ(pq.Size(), 3);
 }
 
 TEST(PriorityQueueTest, PopRemovesHighestPriorityElement) {
-    PriorityQueue<int> pq;
-    
-    int data[] = {5, 1, 9, 3};
-    for (size_t i = 0; i < 4; ++i) {
-        pq.Push(data[i]);
-    }
+    PriorityQueue<int> pq = {5, 1, 9, 3};
 
-    EXPECT_EQ(pq.Top(), 9);
-    pq.pop();
-
-    EXPECT_EQ(pq.Top(), 5);
-    pq.pop();
-
-    EXPECT_EQ(pq.Top(), 3);
-    pq.pop();
-
-    EXPECT_EQ(pq.Top(), 1);
-    pq.pop();
-
+    EXPECT_EQ(pq.Top(), 9); pq.pop();
+    EXPECT_EQ(pq.Top(), 5); pq.pop();
+    EXPECT_EQ(pq.Top(), 3); pq.pop();
+    EXPECT_EQ(pq.Top(), 1); pq.pop();
     EXPECT_TRUE(pq.Empty());
 }
 
 TEST(PriorityQueueTest, EmplaceConstructsElementInPlace) {
     PriorityQueue<TestPoint> pq;
-
     pq.Emplace(1, 2);
     pq.Emplace(5, 10);
     pq.Emplace(3, 4);
@@ -97,19 +125,15 @@ TEST(PriorityQueueTest, EmplaceConstructsElementInPlace) {
 
 TEST(PriorityQueueTest, PushRangeInsertsMultipleElements) {
     PriorityQueue<int> pq;
-
     int range_elements[] = {14, 2, 88, 31, 0};
-    pq.PushRange(range_elements);
+    pq.PushRange(range_elements); // Оставляем массив, если PushRange принимает сырой массив/указатель
 
     EXPECT_EQ(pq.Size(), 5);
     EXPECT_EQ(pq.Top(), 88);
 }
 
-
 TEST(PriorityQueueTest, CopyConstructorAndAssignmentOperator) {
-    PriorityQueue<int> original;
-    original.Push(100);
-    original.Push(500);
+    PriorityQueue<int> original = {100, 500};
 
     PriorityQueue<int> copy(original);
     EXPECT_EQ(copy.Size(), original.Size());
@@ -125,8 +149,7 @@ TEST(PriorityQueueTest, CopyConstructorAndAssignmentOperator) {
 }
 
 TEST(PriorityQueueTest, MoveConstructorAndAssignmentOperator) {
-    PriorityQueue<int> original;
-    original.Push(42);
+    PriorityQueue<int> original = {42};
 
     PriorityQueue<int> moved(std::move(original));
     EXPECT_EQ(moved.Size(), 1);
@@ -141,24 +164,15 @@ TEST(PriorityQueueTest, MoveConstructorAndAssignmentOperator) {
 }
 
 TEST(PriorityQueueTest, GreaterComparatorChangesQueueToMinPriority) {
-    PriorityQueue<int, std::greater<int>> min_pq;
+    PriorityQueue<int, std::greater<int>> min_pq = {50, 10, 30};
 
-    min_pq.Push(50);
-    min_pq.Push(10);
-    min_pq.Push(30);
-
-    EXPECT_EQ(min_pq.Top(), 10);
-    min_pq.pop();
+    EXPECT_EQ(min_pq.Top(), 10); min_pq.pop();
     EXPECT_EQ(min_pq.Top(), 30);
 }
 
 TEST(PriorityQueueTest, SwapMethodExchangesTwoQueuesEntirely) {
-    PriorityQueue<int> pq1;
-    pq1.Push(1);
-    pq1.Push(2);
-
-    PriorityQueue<int> pq2;
-    pq2.Push(99);
+    PriorityQueue<int> pq1 = {1, 2};
+    PriorityQueue<int> pq2 = {99};
 
     pq1.swap(pq2);
 
@@ -167,4 +181,205 @@ TEST(PriorityQueueTest, SwapMethodExchangesTwoQueuesEntirely) {
 
     EXPECT_EQ(pq2.Size(), 2);
     EXPECT_EQ(pq2.Top(), 2);
+}
+
+TEST(PriorityQueueExtensionsTest, MapStandardCase) {
+    PriorityQueue<int> pq = {1, 3, 2};
+    PriorityQueue<int> result = pq.Map([](int x) { return x * 2; });
+
+    DynamicArray<int> expected = {6, 4, 2};
+    AssertArraysEqual(DumpQueueToDynamicArray(result), expected, "Map", "Queue=[3,2,1], Func=x*2");
+}
+
+TEST(PriorityQueueExtensionsTest, MapEmptyQueue) {
+    PriorityQueue<int> pq;
+    PriorityQueue<int> result = pq.Map([](int x) { return x * 2; });
+    AssertQueueIsEmpty(result, "Map", "Queue=[], Func=x*2");
+}
+
+TEST(PriorityQueueExtensionsTest, MapNegativeValues) {
+    PriorityQueue<int> pq = {-5, -1, -10};
+    PriorityQueue<int> result = pq.Map([](int x) { return x + 5; });
+
+    DynamicArray<int> expected = {4, 0, -5};
+    AssertArraysEqual(DumpQueueToDynamicArray(result), expected, "Map", "Queue=[-1,-5,-10], Func=x+5");
+}
+
+TEST(PriorityQueueExtensionsTest, WhereFiltersEven) {
+    PriorityQueue<int> pq = {1, 4, 3, 6, 5};
+    PriorityQueue<int> result = pq.Where([](int x) { return x % 2 == 0; });
+
+    DynamicArray<int> expected = {6, 4};
+    AssertArraysEqual(DumpQueueToDynamicArray(result), expected, "Where", "Queue=[6,5,4,3,1], Pred=x%2==0");
+}
+
+TEST(PriorityQueueExtensionsTest, WhereNoMatches) {
+    PriorityQueue<int> pq = {1, 3, 5};
+    PriorityQueue<int> result = pq.Where([](int x) { return x % 2 == 0; });
+    AssertQueueIsEmpty(result, "Where", "Queue=[5,3,1], Pred=x%2==0");
+}
+
+TEST(PriorityQueueExtensionsTest, WhereAllMatch) {
+    PriorityQueue<int> pq = {2, 4, 6};
+    PriorityQueue<int> result = pq.Where([](int x) { return x % 2 == 0; });
+
+    DynamicArray<int> expected = {6, 4, 2};
+    AssertArraysEqual(DumpQueueToDynamicArray(result), expected, "Where", "Queue=[6,4,2], Pred=x%2==0");
+}
+
+TEST(PriorityQueueExtensionsTest, ReduceSum) {
+    PriorityQueue<int> pq = {10, 20, 30};
+
+    int sum = pq.Reduce<int>([](int acc, int x) { return acc + x; });
+
+    if (sum != 60) {
+        FAIL() << "Function: Reduce\nInputs: Queue=[30,20,10], Default Init=0\nExpected: 60\nActual: " << sum;
+    }
+}
+
+TEST(PriorityQueueExtensionsTest, ReduceEmptyQueue) {
+    PriorityQueue<int> pq;
+
+    int sum = pq.Reduce<int>([](int acc, int x) { return acc + x; });
+
+    if (sum != 0) {
+        FAIL() << "Function: Reduce\nInputs: Queue=[], Default Init=0\nExpected: 0\nActual: " << sum;
+    }
+}
+
+TEST(PriorityQueueExtensionsTest, ReduceProductWithZero) {
+    PriorityQueue<int> pq = {5, 10, 2};
+
+    int product = pq.Reduce<int>([](int acc, int x) { return acc * x; });
+
+    if (product != 0) {
+        FAIL() << "Function: Reduce\nInputs: Queue=[10,5,2], Default Init=0, Func=acc*x\nExpected: 0\nActual: " << product;
+    }
+}
+
+TEST(PriorityQueueExtensionsTest, ConcatenateStandard) {
+    PriorityQueue<int> pq1 = {10, 30};
+    PriorityQueue<int> pq2 = {40, 20};
+
+    PriorityQueue<int> result = pq1.Concat(pq2);
+    DynamicArray<int> expected = {40, 30, 21, 10};
+
+    AssertArraysEqual(DumpQueueToDynamicArray(result), expected, "Concat", "PQ1=[30,10], PQ2=[40,20]");
+    
+    if (pq1.Size() != 2 || pq2.Size() != 2) {
+        FAIL() << "Function: Concat\nInputs: Immutability Check\nExpected: Sizes 2 and 2\nActual: Sizes " << pq1.Size() << " and " << pq2.Size();
+    }
+}
+
+TEST(PriorityQueueExtensionsTest, ConcatenateWithEmpty) {
+    PriorityQueue<int> pq1 = {5, 15};
+    PriorityQueue<int> pq2;
+
+    PriorityQueue<int> result = pq1.Concat(pq2);
+    DynamicArray<int> expected = {15, 5};
+
+    AssertArraysEqual(DumpQueueToDynamicArray(result), expected, "Concat", "PQ1=[15,5], PQ2=[]");
+}
+
+TEST(PriorityQueueExtensionsTest, GetSubsequenceStandardRange) {
+    PriorityQueue<int> pq;
+    pq.Push(10); pq.Push(40); pq.Push(20); pq.Push(30); 
+    PriorityQueue<int> result = pq.GetSubsequence(1, 2);
+
+    DynamicArray<int> expected(2);
+    expected.Set(0, 30); expected.Set(1, 20);
+
+    AssertArraysEqual(DumpQueueToDynamicArray(result), expected, "GetSubsequence", "Queue=[40,30,20,10], Range=[1, 2]");
+}
+
+TEST(PriorityQueueExtensionsTest, GetSubsequenceSingleElement) {
+    PriorityQueue<int> pq;
+    pq.Push(10); pq.Push(40); pq.Push(20);
+
+    PriorityQueue<int> result = pq.GetSubsequence(0, 0);
+
+    DynamicArray<int> expected(1);
+    expected.Set(0, 40);
+
+    AssertArraysEqual(DumpQueueToDynamicArray(result), expected, "GetSubsequence", "Queue=[40,20,10], Range=[0, 0]");
+}
+
+TEST(PriorityQueueExtensionsTest, GetSubsequenceInvalidRange) {
+    PriorityQueue<int> pq;
+    pq.Push(10); pq.Push(20);
+
+    PriorityQueue<int> result = pq.GetSubsequence(2, 1);
+    AssertQueueIsEmpty(result, "GetSubsequence", "Queue=[20,10], Range=[2, 1]");
+}
+
+TEST(PriorityQueueExtensionsTest, GetSubsequenceOutOfRange) {
+    PriorityQueue<int> pq;
+    pq.Push(10);
+
+    PriorityQueue<int> result = pq.GetSubsequence(5, 10);
+    AssertQueueIsEmpty(result, "GetSubsequence", "Queue=[10], Range=[5, 10]");
+}
+
+TEST(PriorityQueueExtensionsTest, ContainsSubsequenceFalse) {
+    PriorityQueue<int> mainPq = {10, 20};
+    PriorityQueue<int> subPq = {20, 99};
+
+    if (mainPq.IsSubsequence(subPq)) {
+        FAIL() << "Function: IsSubsequence\nInputs: Main=[20,10], Sub=[99,20]\nExpected: false\nActual: true";
+    }
+}
+
+TEST(PriorityQueueExtensionsTest, ContainsSubsequenceEmptySub) {
+    PriorityQueue<int> mainPq = {10};
+    PriorityQueue<int> subPq;
+
+    if (!mainPq.IsSubsequence(subPq)) {
+        FAIL() << "Function: IsSubsequence\nInputs: Main=[10], Sub=[]\nExpected: true\nActual: false";
+    }
+}
+
+TEST(PriorityQueueExtensionsTest, AppendStandard) {
+    PriorityQueue<int> pq1 = {30, 10};
+    PriorityQueue<int> pq2 = {40, 20};
+
+    PriorityQueue<int> result = pq1.Concat(pq2); 
+
+    DynamicArray<int> expected(4);
+    expected.Set(0, 40); expected.Set(1, 30); expected.Set(2, 20); expected.Set(3, 10);
+
+    AssertArraysEqual(DumpQueueToDynamicArray(result), expected, "Concatenate", "PQ1=[30,10], PQ2=[40,20]");
+}
+
+TEST(PriorityQueueExtensionsTest, AppendToEmpty) {
+    PriorityQueue<int> pq1;
+    PriorityQueue<int> pq2 = {5, 1};
+
+    PriorityQueue<int> result = pq1.Concat(pq2);
+
+    DynamicArray<int> expected(2);
+    expected.Set(0, 5); expected.Set(1, 1);
+
+    AssertArraysEqual(DumpQueueToDynamicArray(result), expected, "Concatenate", "PQ1=[], PQ2=[5,1]");
+}
+
+TEST(PriorityQueueExtensionsTest, SplitBalanced) {
+    PriorityQueue<int> pq = {1, 2, 3, 4};
+
+    auto [trueQueue, falseQueue] = pq.Split([](int x) { return x % 2 == 0; });
+
+    DynamicArray<int> expectedTrue = {4, 2};
+    DynamicArray<int> expectedFalse = {3, 1};
+
+    AssertArraysEqual(DumpQueueToDynamicArray(trueQueue), expectedTrue, "Split (True Branch)", "Queue=[4,3,2,1], Pred=x%2==0");
+    AssertArraysEqual(DumpQueueToDynamicArray(falseQueue), expectedFalse, "Split (False Branch)", "Queue=[4,3,2,1], Pred=x%2==0");
+}
+
+TEST(PriorityQueueExtensionsTest, SplitAllFalse) {
+    PriorityQueue<int> pq = {1, 3, 5};
+
+    auto [trueQueue, falseQueue] = pq.Split([](int x) { return x % 2 == 0; });
+    DynamicArray<int> expectedFalse = {5, 3, 1};
+
+    AssertQueueIsEmpty(trueQueue, "Split (True Branch)", "Queue=[5,3,1], Pred=x%2==0");
+    AssertArraysEqual(DumpQueueToDynamicArray(falseQueue), expectedFalse, "Split (False Branch)", "Queue=[5,3,1], Pred=x%2==0");
 }

@@ -6,3 +6,5 @@ PriorityQueue - аналог std::priority_queue
 Вот ссылка https://en.cppreference.com/cpp/container/priority_queue
 
 PriorityQueue prealpha v0 - реализована сама PriorityQueue и основные тесты на него
+
+PriorityQueue alpha v1.0 - примитивно выполнены все задания, покрыты минимумом тестов

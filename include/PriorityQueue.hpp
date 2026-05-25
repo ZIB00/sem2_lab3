@@ -1,5 +1,6 @@
 #pragma once
 
+#include <initializer_list>
 #include "BinaryHeap.hpp"
 // #include <sequences>
 
@@ -21,6 +22,7 @@ class PriorityQueue {
         PriorityQueue(const Compare& compare, DynamicArray<T>&& cont) : heap(compare, std::move(cont)) {}
         PriorityQueue(const PriorityQueue& other) : heap(other.heap) {}
         PriorityQueue(PriorityQueue&& other) : heap(std::move(other.heap)) {}
+        PriorityQueue(std::initializer_list<T> initList, const Compare& compare = Compare()); //My Own
         ~PriorityQueue() = default; //Note, that if the elements are pointers, the pointed-to objects are not destroyed. 
 
         PriorityQueue& operator=(const PriorityQueue& other);
@@ -46,6 +48,19 @@ class PriorityQueue {
         void pop() { heap.ExtractRoot(); }
         
         void swap(PriorityQueue& other) { heap.Swap(other.heap); }
+
+        //Задания
+        PriorityQueue<int, Compare> Map(std::function<int(const T&)> func) const;
+        PriorityQueue<T, Compare> Where(std::function<bool(const T&)> predicate) const;
+
+        template<class T2>
+        T2 Reduce(std::function<T2(const T2&, const T&)> func) const;
+
+        PriorityQueue<T, Compare> Concat(const PriorityQueue& other) const;
+        PriorityQueue<T, Compare> GetSubsequence(size_t startIndex, size_t endIndex) const;
+        bool IsSubsequence(const PriorityQueue& subQueue) const;
+        void Append(const PriorityQueue& other);
+        std::pair<PriorityQueue<T, Compare>, PriorityQueue<T, Compare>> Split(std::function<bool(const T&)> predicate) const;
 };
 
 #include "../template/PriorityQueue.tpp"
