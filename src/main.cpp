@@ -2,10 +2,10 @@
 #include <QMainWindow>
 #include <QTabWidget>
 
-#include "Tab1.h"
-#include "Tab2.h"
-#include "Tab3.h"
-#include "Tab4.h"
+#include "Tab1.hpp"
+#include "Tab2.hpp"
+#include "Tab3.hpp"
+#include "Tab4.hpp"
 
 int main(int argc, char* argv[])
 {

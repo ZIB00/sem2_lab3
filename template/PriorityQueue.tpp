@@ -23,20 +23,6 @@ PriorityQueue<T, Compare>& PriorityQueue<T, Compare>::operator=(PriorityQueue<T,
     return *this;
 }
 
-template<class T, class Compare>
-template<class... Args>
-void PriorityQueue<T, Compare>::Emplace(Args&&... args) {
-    heap.Insert(T(std::forward<Args>(args)...));
-}
-
-template<class T, class Compare>
-template<class R>
-void PriorityQueue<T, Compare>::PushRange(R&& rg) {
-    for (auto& el : rg) {
-        heap.Insert(el); 
-    }
-}
-
 template <typename T, typename Compare>
 PriorityQueue<int, std::less<int>> PriorityQueue<T, Compare>::Map(std::function<int(const T&)> func) const {
     PriorityQueue<int, std::less<int>> result;

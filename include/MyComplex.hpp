@@ -10,10 +10,10 @@ private:
     T im;
 
 public:
-    constexpr MyComplex(T r = T(), T i = T()) : re(r), im(i) {}
+    MyComplex(T r = T(), T i = T()) : re(r), im(i) {}
 
-    constexpr T real() const { return re; }
-    constexpr T imag() const { return im; }
+    T real() const { return re; }
+    T imag() const { return im; }
 
     void real(T r) { re = r; }
     void imag(T i) { im = i; }
@@ -38,7 +38,7 @@ public:
         return *this;
     }
 
-    constexpr MyComplex conj() const {
+    MyComplex conj() const {
         return MyComplex(re, -im);
     }
 

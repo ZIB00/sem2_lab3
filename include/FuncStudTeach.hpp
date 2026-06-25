@@ -6,27 +6,26 @@
 
 struct Student {
     std::string name;
-    double avg_grade;
+    double avgGrade;
 
     bool operator<(const Student& other) const {
-        return this->avg_grade < other.avg_grade;
+        return this->avgGrade < other.avgGrade;
     }
 
-    // Добавляем оператор равенства для IsSubsequence
     bool operator==(const Student& other) const {
-        return this->avg_grade == other.avg_grade && this->name == other.name;
+        return this->avgGrade == other.avgGrade && this->name == other.name;
     }
 
     Student operator+(const Student& other) const {
         return Student{
             this->name + "&" + other.name,
-            (this->avg_grade + other.avg_grade) / 2.0
+            (this->avgGrade + other.avgGrade) / 2.0
         };
     }
 };
 
 inline std::ostream& operator<<(std::ostream& os, const Student& s) {
-    os << s.name << "(" << s.avg_grade << ")";
+    os << s.name << "(" << s.avgGrade << ")";
     return os;
 }
 

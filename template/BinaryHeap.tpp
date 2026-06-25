@@ -132,9 +132,3 @@ void BinaryHeap< T, Compare >::ExtractRoot() {
         SiftDown(0);
     }
 }
-
-template<class T, class Compare>
-void BinaryHeap< T, Compare >::Swap(BinaryHeap< T, Compare >& other) {
-    std::swap(this->data, other.data);
-    std::swap(this->comp, other.comp);
-}

@@ -6,10 +6,10 @@ include_directories(
 
 add_executable(lab3
     main.cpp
-    Tab1.h
-    Tab2.h
-    Tab3.h
-    Tab4.h
+    Tab1.hpp
+    Tab2.hpp
+    Tab3.hpp
+    Tab4.hpp
 )
 
 target_link_libraries(lab3 PRIVATE 

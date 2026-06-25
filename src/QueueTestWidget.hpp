@@ -7,8 +7,8 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QTextEdit>
+#include <QEvent>
 #include <sstream>
-#include <functional>
 
 #include "PriorityQueue.hpp"
 #include "MyComplex.hpp"
@@ -16,8 +16,7 @@
 #include "other/Exceptions.hpp"
 
 template<class Type, class Comp>
-static std::string pqToStr(PriorityQueue<Type, Comp> pq)
-{
+static std::string pqToStr(PriorityQueue<Type, Comp> pq) {
     std::ostringstream ss;
     ss << "[";
     bool first = true;
@@ -31,6 +30,25 @@ static std::string pqToStr(PriorityQueue<Type, Comp> pq)
     return ss.str();
 }
 
+template<typename T>
+struct MapLen {
+    int operator()(const T& x) const {
+        std::ostringstream ss; ss << x;
+        return static_cast<int>(ss.str().length());
+    }
+};
+
+template<typename T>
+struct WhereThresh {
+    T threshold;
+    bool operator()(const T& x) const { return threshold < x; }
+};
+
+template<typename T>
+struct ReduceSum {
+    T operator()(const T& a, const T& b) const { return a + b; }
+};
+
 template <typename T, typename Compare = std::less<T>>
 class QueueTestWidget : public QWidget {
     PriorityQueue<T, Compare> pq;
@@ -41,153 +59,159 @@ class QueueTestWidget : public QWidget {
     QLineEdit* filterN;
     QLabel* topLbl;
 
-    std::function<T(const QString&)> parseFunc;
+    QPushButton* bPush;
+    QPushButton* bPop;
+    QPushButton* bMap;
+    QPushButton* bWhere;
+    QPushButton* bRed;
+    QPushButton* bCat;
+    QPushButton* bSub;
+    QPushButton* bIsSub;
+
+    typedef T (*Parser)(const QString&);
+    Parser parseFunc;
 
     void addLog(const QString& s) { log->append(s); }
-    
     void addCustomErrorLog(const std::string& type, const char* msg) { 
-        log->append("<font color='red'><b>[" + QString::fromStdString(type) + "]:</b> " + QString::fromUtf8(msg) + "</font>"); 
+        log->append("[" + QString::fromStdString(type) + "]: " + QString::fromUtf8(msg)); 
     }
 
-    void refresh()
-    {
+    void refresh() {
         QString top = pq.Empty() ? "—" : QString::fromStdString((std::ostringstream() << pq.Top()).str());
         topLbl->setText("Top: " + top + "   Очередь: " + QString::fromStdString(pqToStr(pq)));
     }
 
+protected:
+    bool eventFilter(QObject* obj, QEvent* event) override {
+        if (event->type() == QEvent::MouseButtonRelease) {
+            if (obj == bPush) { doPush(); return true; }
+            if (obj == bPop) { doPop(); return true; }
+            if (obj == bMap) { doMap(); return true; }
+            if (obj == bWhere) { doWhere(); return true; }
+            if (obj == bRed) { doRed(); return true; }
+            if (obj == bCat) { doCat(); return true; }
+            if (obj == bSub) { doSub(); return true; }
+            if (obj == bIsSub) { doIsSub(); return true; }
+        }
+        return QWidget::eventFilter(obj, event);
+    }
+
+    void doPush() {
+        if (valIn->text().trimmed().isEmpty()) {
+            addCustomErrorLog("InvalidArgument", "Поле ввода пусто!");
+            return;
+        }
+        try {
+            pq.Push(parseFunc(valIn->text()));
+            addLog("Элемент успешно добавлен.");
+            refresh();
+        } 
+        catch (const OtherError& e) { addCustomErrorLog("Error", e.what()); }
+        catch (...) { addCustomErrorLog("UnknownError", "Неизвестный сбой."); }
+    }
+
+    void doPop() {
+        if (pq.Empty()) { 
+            addCustomErrorLog("LogicError", "Попытка извлечь из пустой очереди!"); 
+            return; 
+        }
+        pq.pop();
+        addLog("Элемент извлечен.");
+        refresh();
+    }
+
+    void doMap() {
+        if (pq.Empty()) return;
+        auto r = pq.Map(MapLen<T>());
+        addLog("Map выполнен: " + QString::fromStdString(pqToStr<int, std::less<int>>(r)));
+    }
+
+    void doWhere() {
+        if (filterN->text().trimmed().isEmpty()) return;
+        try {
+            WhereThresh<T> cond{ parseFunc(filterN->text()) };
+            auto r = pq.Where(cond);
+            addLog("Where: " + QString::fromStdString(pqToStr(r)));
+        } catch (...) { addCustomErrorLog("Error", "Ошибка фильтрации."); }
+    }
+
+    void doRed() {
+        if (pq.Empty()) return;
+        try {
+            T s = pq.template Reduce<T>(ReduceSum<T>());
+            std::ostringstream ss; ss << s;
+            addLog("Reduce = " + QString::fromStdString(ss.str()));
+        } catch (...) { addCustomErrorLog("Error", "Ошибка агрегации."); }
+    }
+
+    void doCat() {
+        auto r = pq.Concat(pq);
+        addLog("Concat: " + QString::fromStdString(pqToStr(r)));
+    }
+
+    void doSub() {
+        if (pq.Size() < 3) return;
+        auto r = pq.GetSubsequence(0, 2);
+        addLog("Subsequence [0,2]: " + QString::fromStdString(pqToStr(r)));
+    }
+
+    void doIsSub() {
+        if (valIn->text().trimmed().isEmpty()) {
+            addCustomErrorLog("InvalidArgument", "Введите значение в поле ввода для проверки");
+            return;
+        }
+        try {
+            PriorityQueue<T, Compare> sub;
+            sub.Push(parseFunc(valIn->text()));
+            addLog(QString("IsSubsequence([valIn]): ") + (pq.IsSubsequence(sub) ? "true" : "false"));
+        } catch (...) { 
+            addCustomErrorLog("Error", "Ошибка парсинга элемента."); 
+        }
+    }
+
 public:
-    QueueTestWidget(std::function<T(const QString&)> parser, QWidget* parent = nullptr) 
+    QueueTestWidget(Parser parser, QWidget* parent = nullptr) 
         : QWidget(parent), parseFunc(parser) 
     {
         QVBoxLayout* lay = new QVBoxLayout(this);
 
         QHBoxLayout* row1 = new QHBoxLayout;
         valIn = new QLineEdit; 
-        valIn->setPlaceholderText("Значение элемента");
-        QPushButton* bPush = new QPushButton("Push");
-        QPushButton* bPop = new QPushButton("Pop");
-        row1->addWidget(valIn); row1->addWidget(bPush); row1->addWidget(bPop);
+        bPush = new QPushButton("Push"); bPush->installEventFilter(this);
+        bPop = new QPushButton("Pop"); bPop->installEventFilter(this);
+
+        row1->addWidget(valIn); 
+        row1->addWidget(bPush); 
+        row1->addWidget(bPop);
+
         lay->addLayout(row1);
 
         topLbl = new QLabel("Top: —   Очередь: []");
         lay->addWidget(topLbl);
 
-        // Map
         QHBoxLayout* rowMap = new QHBoxLayout;
-        mapN = new QLineEdit; mapN->setPlaceholderText("Функция Map (автоматический подсчет длин)");
-        mapN->setReadOnly(true);
-        QPushButton* bMap = new QPushButton("Map (В длины строк)");
-        rowMap->addWidget(mapN); rowMap->addWidget(bMap);
+        bMap = new QPushButton("Map (len(item))"); bMap->installEventFilter(this);
+        rowMap->addWidget(bMap);
         lay->addLayout(rowMap);
 
-        // Where
         QHBoxLayout* rowFilter = new QHBoxLayout;
-        filterN = new QLineEdit; filterN->setPlaceholderText("Порог для фильтрации");
-        QPushButton* bWhere = new QPushButton("Where (Элементы > порога)");
-        rowFilter->addWidget(filterN); rowFilter->addWidget(bWhere);
+        filterN = new QLineEdit; 
+        bWhere = new QPushButton("Where (> n)"); bWhere->installEventFilter(this);
+        
+        rowFilter->addWidget(filterN); 
+        rowFilter->addWidget(bWhere);
         lay->addLayout(rowFilter);
 
-        // Остальные операции
         QHBoxLayout* rowOps = new QHBoxLayout;
-        QPushButton* bRed = new QPushButton("Reduce (Сумма)");
-        QPushButton* bCat = new QPushButton("Concat self");
-        QPushButton* bSub = new QPushButton("Subseq [0,2]");
-        QPushButton* bIsSub = new QPushButton("IsSubseq([top])");
+        bRed = new QPushButton("Reduce"); bRed->installEventFilter(this);
+        bCat = new QPushButton("Concat self"); bCat->installEventFilter(this);
+        bSub = new QPushButton("Subseq [0,2]"); bSub->installEventFilter(this);
+        bIsSub = new QPushButton("IsSubseq([valIn])"); bIsSub->installEventFilter(this);
+
         rowOps->addWidget(bRed); rowOps->addWidget(bCat); rowOps->addWidget(bSub); rowOps->addWidget(bIsSub);
         lay->addLayout(rowOps);
 
         log = new QTextEdit; log->setReadOnly(true);
         lay->addWidget(log);
-
-        connect(bPush, &QPushButton::clicked, this, [this] {
-            if (valIn->text().trimmed().isEmpty()) {
-                addCustomErrorLog("InvalidArgument", "Поле ввода пусто!");
-                return;
-            }
-            try {
-                T val = parseFunc(valIn->text());
-                pq.Push(val);
-                addLog("Элемент успешно добавлен.");
-                refresh();
-            } 
-            catch (const InvalidArgument& e) { addCustomErrorLog("InvalidArgument", e.what()); }
-            catch (const OutOfRange& e)      { addCustomErrorLog("OutOfRange", e.what()); }
-            catch (const LogicError& e)      { addCustomErrorLog("LogicError", e.what()); }
-            catch (const std::exception& e)  { addCustomErrorLog("StdException", e.what()); }
-            catch (...)                      { addCustomErrorLog("UnknownError", "Неизвестный сбой приложения."); }
-        });
-
-        connect(bPop, &QPushButton::clicked, this, [this] {
-            if (pq.Empty()) { 
-                addCustomErrorLog("LogicError", "Попытка извлечь корень из пустой очереди!"); 
-                return; 
-            }
-            pq.pop();
-            addLog("Элемент извлечен из вершины.");
-            refresh();
-        });
-
-        connect(bMap, &QPushButton::clicked, this, [this] {
-            if (pq.Empty()) { 
-                addCustomErrorLog("LogicError", "Очередь пуста. Операция Map невозможна."); 
-                return; 
-            }
-            auto r = pq.Map([](const T& x) -> int {
-                std::ostringstream ss; ss << x;
-                return static_cast<int>(ss.str().length());
-            });
-            std::string resStr = pqToStr<int, std::less<int>>(r);
-            addLog("Map выполнен → " + QString::fromStdString(resStr));
-        });
-
-        connect(bWhere, &QPushButton::clicked, this, [this] {
-            if (filterN->text().trimmed().isEmpty()) { 
-                addCustomErrorLog("InvalidArgument", "Поле порога пусто!"); 
-                return; 
-            }
-            try {
-                T threshold = parseFunc(filterN->text());
-                auto r = pq.Where([threshold](const T& x) { return threshold < x; });
-                addLog("Where (элементы > порога) → " + QString::fromStdString(pqToStr(r)));
-            } 
-            catch (const InvalidArgument& e) { addCustomErrorLog("InvalidArgument", e.what()); }
-            catch (const OutOfRange& e)      { addCustomErrorLog("OutOfRange", e.what()); }
-            catch (...)                      { addCustomErrorLog("Error", "Ошибка фильтрации."); }
-        });
-
-        connect(bRed, &QPushButton::clicked, this, [this] {
-            if (pq.Empty()) { 
-                addCustomErrorLog("LogicError", "Нечего редуцировать, очередь пуста."); 
-                return; 
-            }
-            try {
-                T s = pq.template Reduce<T>([&](const T& a, const T& b) { return a + b; });
-                std::ostringstream ss; ss << s;
-                addLog("Reduce (Сумма элементов) = " + QString::fromStdString(ss.str()));
-            } catch (...) {
-                addCustomErrorLog("OtherError", "Ошибка выполнения агрегации.");
-            }
-        });
-
-        connect(bCat, &QPushButton::clicked, this, [this] {
-            auto r = pq.Concat(pq);
-            addLog("Concat (Очередь + Очередь) → " + QString::fromStdString(pqToStr(r)));
-        });
-
-        connect(bSub, &QPushButton::clicked, this, [this] {
-            if (pq.Size() < 3) { 
-                addCustomErrorLog("OutOfRange", "Недостаточно элементов для извлечения индексов [0,2]!"); 
-                return; 
-            }
-            auto r = pq.GetSubsequence(0, 2);
-            addLog("Subsequence [0,2] → " + QString::fromStdString(pqToStr(r)));
-        });
-
-        connect(bIsSub, &QPushButton::clicked, this, [this] {
-            PriorityQueue<T, Compare> sub;
-            if (!pq.Empty()) sub.Push(pq.Top());
-            bool res = pq.IsSubsequence(sub);
-            addLog(QString("IsSubsequence → ") + (res ? "true" : "false"));
-        });
     }
 };

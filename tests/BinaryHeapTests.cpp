@@ -120,19 +120,6 @@ TEST(BinaryHeapTest, GreaterComparatorCreatesMinHeap) {
     EXPECT_EQ(min_heap.GetRoot(), 5);
 }
 
-TEST(BinaryHeapTest, SwapMethodExchangesHeapsEntirely) {
-    BinaryHeap<int> heap1;
-    heap1.Insert(10);
-    heap1.Insert(20);
-    BinaryHeap<int> heap2;
-    heap2.Insert(100);
-    heap1.Swap(heap2);
-    EXPECT_EQ(heap1.GetSize(), 1);
-    EXPECT_EQ(heap1.GetRoot(), 100);
-    EXPECT_EQ(heap2.GetSize(), 2);
-    EXPECT_EQ(heap2.GetRoot(), 20);
-}
-
 TEST(BinaryHeapTest, InsertDuplicateValuesMaintainsStructure) {
     BinaryHeap<int> heap;
     heap.Insert(10);
@@ -345,15 +332,6 @@ TEST(BinaryHeapTest, AlternateInsertsAndExtractsMixed) {
     EXPECT_EQ(heap.GetRoot(), 20);
     heap.ExtractRoot();
     EXPECT_EQ(heap.GetRoot(), 5);
-}
-
-TEST(BinaryHeapTest, SwapWithItselfDoesNothing) {
-    BinaryHeap<int> heap;
-    heap.Insert(10);
-    heap.Insert(30);
-    heap.Swap(heap);
-    EXPECT_EQ(heap.GetSize(), 2);
-    EXPECT_EQ(heap.GetRoot(), 30);
 }
 
 TEST(BinaryHeapTest, MoveAssignmentIntoActiveHeapOverwrites) {

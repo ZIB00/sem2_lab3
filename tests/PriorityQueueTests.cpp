@@ -114,24 +114,6 @@ TEST(PriorityQueueTest, PopRemovesHighestPriorityElement) {
     EXPECT_TRUE(pq.Empty());
 }
 
-TEST(PriorityQueueTest, EmplaceConstructsElementInPlace) {
-    PriorityQueue<TestPoint> pq;
-    pq.Emplace(1, 2);
-    pq.Emplace(5, 10);
-    pq.Emplace(3, 4);
-    EXPECT_EQ(pq.Size(), 3);
-    TestPoint expected_top(5, 10);
-    EXPECT_EQ(pq.Top(), expected_top);
-}
-
-TEST(PriorityQueueTest, PushRangeInsertsMultipleElements) {
-    PriorityQueue<int> pq;
-    int range_elements[] = {14, 2, 88, 31, 0};
-    pq.PushRange(range_elements);
-    EXPECT_EQ(pq.Size(), 5);
-    EXPECT_EQ(pq.Top(), 88);
-}
-
 TEST(PriorityQueueTest, CopyConstructorAndAssignmentOperator) {
     PriorityQueue<int> original = {100, 500};
     PriorityQueue<int> copy(original);
@@ -169,16 +151,6 @@ TEST(PriorityQueueTest, GreaterComparatorChangesQueueToMinPriority) {
     EXPECT_EQ(min_pq.Top(), 10);
     min_pq.pop();
     EXPECT_EQ(min_pq.Top(), 30);
-}
-
-TEST(PriorityQueueTest, SwapMethodExchangesTwoQueuesEntirely) {
-    PriorityQueue<int> pq1 = {1, 2};
-    PriorityQueue<int> pq2 = {99};
-    pq1.swap(pq2);
-    EXPECT_EQ(pq1.Size(), 1);
-    EXPECT_EQ(pq1.Top(), 99);
-    EXPECT_EQ(pq2.Size(), 2);
-    EXPECT_EQ(pq2.Top(), 2);
 }
 
 TEST(PriorityQueueExtensionsTest, MapStandardCase) {
@@ -493,25 +465,10 @@ TEST(PriorityQueueTest, FloatDataTypeMaxPriority) {
     EXPECT_EQ(pq.Top(), 5.5f);
 }
 
-TEST(PriorityQueueTest, SwapWithEmptyQueue) {
-    PriorityQueue<int> pq1 = {10, 20};
-    PriorityQueue<int> pq2;
-    pq1.swap(pq2);
-    EXPECT_TRUE(pq1.Empty());
-    EXPECT_EQ(pq2.Size(), 2);
-}
-
 TEST(PriorityQueueExtensionsTest, MapToDifferentTypeStructureCheck) {
     PriorityQueue<int> pq = {1, 2};
     PriorityQueue<int> result = pq.Map([](const int& x) { return x + 10; });
     EXPECT_EQ(result.Top(), 12);
-}
-
-TEST(PriorityQueueTest, EmplaceMaintainsSizeIncrement) {
-    PriorityQueue<int> pq;
-    pq.Emplace(10);
-    pq.Emplace(20);
-    EXPECT_EQ(pq.Size(), 2);
 }
 
 TEST(PriorityQueueExtensionsTest, WhereAllFilteredOutKeepEmptyMetrics) {

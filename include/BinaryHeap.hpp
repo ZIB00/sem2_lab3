@@ -2,7 +2,6 @@
 
 #include "sequence/sequences/DynamicArray.hpp"
 #include <functional>
-#include <utility>
 
 template< class T, class Compare = std::less<T> >
 class BinaryHeap 
@@ -20,7 +19,7 @@ class BinaryHeap
 
     public:
         BinaryHeap() : data(0), comp(Compare()) {}
-        explicit BinaryHeap( const Compare& compare ) : data(0), comp(compare) {}
+        BinaryHeap( const Compare& compare ) : data(0), comp(compare) {}
         BinaryHeap( const Compare& compare, const DynamicArray<T>& array );
         BinaryHeap( const Compare& compare, DynamicArray<T>&& array) ;
         BinaryHeap( const BinaryHeap< T, Compare >& other ) : data(other.data), comp(other.comp) {}
@@ -36,7 +35,6 @@ class BinaryHeap
         void Insert(const T& item);
         void Insert(T&& item);
         void ExtractRoot();
-        void Swap(BinaryHeap< T, Compare >& other);
 };
 
 #include "../template/BinaryHeap.tpp"

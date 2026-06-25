@@ -16,14 +16,13 @@ class PriorityQueue {
 
     public:
         PriorityQueue() : heap() {}
-        explicit PriorityQueue( const Compare& compare ) : heap(compare) {}
-        //explicit PriorityQueue( const Compare& compare = Compare(), const Container& cont = Container() );
+        PriorityQueue( const Compare& compare ) : heap(compare) {}
         PriorityQueue( const Compare& compare, const DynamicArray<T>& cont ) : heap(compare, cont) {}
         PriorityQueue(const Compare& compare, DynamicArray<T>&& cont) : heap(compare, std::move(cont)) {}
         PriorityQueue(const PriorityQueue& other) : heap(other.heap) {}
         PriorityQueue(PriorityQueue&& other) : heap(std::move(other.heap)) {}
         PriorityQueue(std::initializer_list<T> initList, const Compare& compare = Compare()); //My Own
-        ~PriorityQueue() = default; //Note, that if the elements are pointers, the pointed-to objects are not destroyed. 
+        ~PriorityQueue() = default; 
 
         PriorityQueue& operator=(const PriorityQueue& other);
         PriorityQueue& operator=(PriorityQueue&& other);
@@ -39,15 +38,7 @@ class PriorityQueue {
         void Push(const T& value) { heap.Insert(value); }
         void Push(T&& value)      { heap.Insert(std::move(value)); }
 
-        template<class... Args>
-        void Emplace(Args&&... args);
-
-        template<class R>
-        void PushRange(R&& rg);
-
         void pop() { heap.ExtractRoot(); }
-        
-        void swap(PriorityQueue& other) { heap.Swap(other.heap); }
 
         //Задания
         PriorityQueue<int, std::less<int>> Map(std::function<int(const T&)> func) const;
