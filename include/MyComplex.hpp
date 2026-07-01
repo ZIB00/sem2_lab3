@@ -1,7 +1,5 @@
 #pragma once
 
-#include <iostream>
-
 //https://en.cppreference.com/cpp/numeric/complex
 template <typename T>
 class MyComplex {
@@ -77,7 +75,6 @@ bool operator<(const MyComplex<T>& lhs, const MyComplex<T>& rhs) {
 }
 
 template <typename T>
-std::ostream& operator<<(std::ostream& os, const MyComplex<T>& c) {
-    os << c.real() << (c.imag() >= 0 ? "+" : "") << c.imag() << "i";
-    return os;
+bool operator>(const MyComplex<T>& lhs, const MyComplex<T>& rhs) {
+    return lhs.abs() > rhs.abs();
 }

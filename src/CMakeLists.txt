@@ -6,10 +6,19 @@ include_directories(
 
 add_executable(lab3
     main.cpp
-    Tab1.hpp
-    Tab2.hpp
-    Tab3.hpp
-    Tab4.hpp
+    MainWindow.hpp
+    MainWindow.cpp
+    BaseTab.hpp
+    BaseTab.cpp
+    HanoyTab.hpp
+    HanoyTab.cpp
+    AnalysisTab.hpp
+    AnalysisTab.cpp
+    PrimeTab.hpp
+    PrimeTab.cpp
+    QueueController.hpp
+    QueueControllerImpl.hpp
+    QueueControllerImpl.cpp
 )
 
 target_link_libraries(lab3 PRIVATE 

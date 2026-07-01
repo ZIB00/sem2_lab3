@@ -1,9 +1,12 @@
-PriorityQueue - аналог std::priority_queue
-Сделан с помощью инкапсуляции самодельного класса BinaryHeap - буквально бинарная куча
+PriorityQueue вдохновлён std::priority_queue
+Обёртка над классом BinaryHeap - бинарная куча
 Бинарная куча инкапсулирует DynamicArray из ЛР2
 
-Функционал такой же, как у std::priority_queue
-Вот ссылка https://en.cppreference.com/cpp/container/priority_queue
+Функционал вдохновлён std::priority_queue
+Вот ссылка: https://en.cppreference.com/cpp/container/priority_queue
+
+В программе присутствуют комплексные числа, сделанные с ориентиром на std::complex
+Ссылка: https://en.cppreference.com/cpp/numeric/complex
 
 PriorityQueue prealpha v0 - реализована сама PriorityQueue и основные тесты на него
 

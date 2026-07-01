@@ -3,6 +3,10 @@ find_package(GTest REQUIRED)
 add_executable(tests 
     PriorityQueueTests.cpp
     BinaryHeapTests.cpp
+    SeqCollectionTests.cpp
+    IGroupIRingTests.cpp
+    LinkedListTests.cpp
+    StackTests.cpp
 )
 
 target_include_directories(tests PRIVATE
@@ -13,7 +17,7 @@ target_include_directories(tests PRIVATE
 target_link_libraries(tests PRIVATE 
     GTest::gtest
     GTest::gtest_main
-    sequences
+    Sequence
 )
 
 include(GoogleTest)
